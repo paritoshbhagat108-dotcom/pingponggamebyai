@@ -1,3 +1,7 @@
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -88,7 +92,15 @@
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
-        .reset-btn {
+        .button-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .game-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
@@ -96,17 +108,16 @@
             font-size: 1em;
             border-radius: 8px;
             cursor: pointer;
-            margin-top: 15px;
             transition: transform 0.2s, box-shadow 0.2s;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
 
-        .reset-btn:hover {
+        .game-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
         }
 
-        .reset-btn:active {
+        .game-btn:active {
             transform: translateY(0);
         }
 
@@ -145,7 +156,10 @@
             </div>
         </div>
 
-        <button class="reset-btn" onclick="location.reload()">Reset Game</button>
+        <div class="button-row">
+            <button class="game-btn" id="pauseBtn" type="button">Pause Game</button>
+            <button class="game-btn" onclick="location.reload()">Reset Game</button>
+        </div>
 
         <div class="game-info">
             <p>First to 5 points wins! Ball speed increases each paddle hit.</p>
@@ -194,6 +208,50 @@
             player: 0,
             computer: 0
         };
+
+        let isPaused = false;
+        let resumeTimer = null;
+        let countdownValue = null;
+        const pauseBtn = document.getElementById('pauseBtn');
+
+        pauseBtn.addEventListener('click', () => {
+            if (resumeTimer) {
+                return;
+            }
+
+            if (isPaused) {
+                startResumeCountdown();
+                return;
+            }
+
+            isPaused = true;
+            pauseBtn.textContent = 'Resume Game';
+            draw();
+        });
+
+        function startResumeCountdown() {
+            countdownValue = 3;
+            pauseBtn.disabled = true;
+            pauseBtn.textContent = `Resuming in ${countdownValue}`;
+            draw();
+
+            resumeTimer = setInterval(() => {
+                countdownValue--;
+
+                if (countdownValue > 0) {
+                    pauseBtn.textContent = `Resuming in ${countdownValue}`;
+                    draw();
+                    return;
+                }
+
+                clearInterval(resumeTimer);
+                resumeTimer = null;
+                countdownValue = null;
+                isPaused = false;
+                pauseBtn.disabled = false;
+                pauseBtn.textContent = 'Pause Game';
+            }, 1000);
+        }
 
         // Input handling
         const keys = {};
@@ -365,13 +423,37 @@
             drawPaddle(player);
             drawPaddle(computer);
             drawBall();
+
+            if (isPaused) {
+                drawPauseOverlay();
+            }
+        }
+
+        function drawPauseOverlay() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 52px Arial';
+            ctx.fillText(countdownValue ? countdownValue : 'PAUSED', canvas.width / 2, canvas.height / 2);
+
+            ctx.font = '18px Arial';
+            ctx.fillText(
+                countdownValue ? 'Get ready...' : 'Click Resume Game to continue',
+                canvas.width / 2,
+                canvas.height / 2 + 48
+            );
         }
 
         // Game loop
         function gameLoop() {
-            updatePlayer();
-            updateComputer();
-            updateBall();
+            if (!isPaused) {
+                updatePlayer();
+                updateComputer();
+                updateBall();
+            }
             draw();
             requestAnimationFrame(gameLoop);
         }
